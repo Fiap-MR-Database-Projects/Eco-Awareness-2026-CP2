@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eco-Awareness 2026 | Cashback</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="card">
+        <span class="badge">Fidelidade & Bônus</span>
+        
+        <h1>Eco-Awareness 2026</h1>
+        <p>Programa de Cashback Progressivo por ID.</p>
+        
+        <div class="input-group">
+            <label for="usuarioId">ID DO USUÁRIO</label>
+            <input type="number" id="usuarioId" placeholder="Ex: 1" value="">
+        </div>
+
+        <button id="btnDistribuir" onclick="distribuir()">
+            Distribuir Cashback
+        </button>
+
+        <div class="status-container">
+            <h3>Saldos Atuais dos Participantes</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Participante</th>
+                        <th>Tipo</th>
+                        <th style="text-align: center;">Pres.</th>
+                        <th style="text-align: right;">Saldo</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-usuarios"></tbody>
+            </table>
+
+            <button id="btnReset" onclick="resetar()" class="secondary-button">
+                Resetar Sistema
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function carregarUsuarios() {
+            fetch('/usuarios')
+                .then(res => res.json())
+                .then(data => {
+                    const corpoTabela = document.getElementById('tabela-usuarios');
+                    corpoTabela.innerHTML = ''; 
+                    data.forEach(u => {
+                        // Garantindo que 'tipo' e 'presencas' não fiquem 'undefined'
+                        const tipo = u.tipo || "NORMAL";
+                        const presencas = u.presencas !== undefined ? u.presencas : 0;
+                        const corTipo = tipo === 'VIP' ? '#a855f7' : '#666';
+
+                        corpoTabela.innerHTML += `
+                            <tr>
+                                <td class="td-id">#${u.id}</td>
+                                <td class="td-nome">${u.nome}</td>
+                                <td><span style="color: ${corTipo}; font-size: 10px; font-weight: bold;">${tipo}</span></td>
+                                <td style="text-align: center; color: #888;">${presencas}</td>
+                                <td class="td-saldo">R$ ${u.saldo}</td>
+                            </tr>
+                        `;
+                    });
+                })
+                .catch(err => console.error("Erro ao carregar usuários:", err));
+        }
+
+        function distribuir() {
+            const inputId = document.getElementById('usuarioId');
+            
+            if (!inputId) {
+                console.error("Elemento 'usuarioId' não encontrado no DOM");
+                return;
+            }
+
+            const userId = inputId.value;
+            if (!userId) {
+                alert("Por favor, informe o ID do usuário para o cashback.");
+                return;
+            }
+
+            const btn = document.getElementById('btnDistribuir');
+            btn.innerText = "Processando...";
+            btn.disabled = true;
+
+            fetch('/distribuir', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: userId }) 
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                carregarUsuarios();
+            })
+            .catch(err => alert("Erro na requisição: " + err))
+            .finally(() => {
+                btn.innerText = "Distribuir Cashback";
+                btn.disabled = false;
+            });
+        }
+
+        function resetar() {
+            if(!confirm("Deseja resetar os saldos?")) return;
+            fetch('/reset', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                carregarUsuarios();
+            });
+        }
+
+        window.onload = carregarUsuarios;
+    </script>
+</body>
+</html>
